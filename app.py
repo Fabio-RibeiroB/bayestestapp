@@ -6,8 +6,9 @@ from scipy.stats import beta
 from bayestest.ab_test import BayesTest
 
 # App Configuration
-st.set_page_config(page_title="Bayesian A/B Testing", layout="wide")
-st.title("Bayesian A/B Testing")
+st.set_page_config(page_title="Bayesian A/B Testing Calculator", layout="wide")
+st.title("Bayesian A/B Testing Calculator")
+st.write("Enter prior parameters and variant conversion results, and get posteriors and probability of winning. Work in progress.")
 
 # Initialize session state
 if 'test' not in st.session_state:
