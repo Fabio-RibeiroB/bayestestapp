@@ -12,10 +12,8 @@ st.title("Bayesian A/B Testing")
 # Initialize session state
 if 'test' not in st.session_state:
     st.session_state.test = BayesTest()
-if 'num_variants' not in st.session_state:
-    st.session_state.num_variants = 1
-if 'show_prior_plot' not in st.session_state:
-    st.session_state.show_prior_plot = False
+if 'prior_plot_ready' not in st.session_state:
+    st.session_state.prior_plot_ready = False
 
 # Sidebar for configuration
 st.sidebar.header("Configuration")
@@ -25,17 +23,14 @@ st.sidebar.subheader("Beta Prior Parameters")
 alpha_prior = st.sidebar.slider("Alpha prior (shape parameter)", min_value=1, max_value=50, value=5, step=1)
 beta_prior = st.sidebar.slider("Beta prior (shape parameter)", min_value=1, max_value=50, value=5, step=1)
 
-# Button to show prior plot
+# Compute the Beta prior plot only once
 if st.sidebar.button("Select and View Priors"):
-    st.session_state.show_prior_plot = True
+    st.session_state.prior_plot_ready = True
 
-# Conditionally display the Beta prior plot
-if st.session_state.show_prior_plot:
-    st.sidebar.subheader("Beta Distribution")
-    x_range = np.linspace(0, 1, 100_000)
+if st.session_state.prior_plot_ready:
+    x_range = np.linspace(0, 1, 5_000)
     y = beta.pdf(x_range, alpha_prior, beta_prior)
-
-    alt_prior_chart = alt.Chart(pd.DataFrame({'x': x_range, 'Density': y})).mark_line().encode(
+    prior_chart = alt.Chart(pd.DataFrame({'x': x_range, 'Density': y})).mark_line().encode(
         x='x',
         y='Density'
     ).properties(
@@ -43,26 +38,27 @@ if st.session_state.show_prior_plot:
         width=400,
         height=300
     )
-    st.sidebar.altair_chart(alt_prior_chart, use_container_width=True)
+    st.sidebar.subheader("Beta Distribution")
+    st.sidebar.altair_chart(prior_chart, use_container_width=True)
 
-# Set priors in session state
-st.session_state.test.set_conversion_rate_prior(alpha_prior, beta_prior)
-
-# Add variants dynamically
-num_variants = st.sidebar.number_input("Number of variants", min_value=1, value=st.session_state.num_variants)
-st.session_state.num_variants = num_variants
-
+# Variant inputs
+st.sidebar.subheader("Variants")
+num_variants = st.sidebar.number_input("Number of variants", min_value=1, value=1, step=1)
 variants_data = []
+
 for i in range(num_variants):
     st.sidebar.subheader(f"{'Control' if i == 0 else f'Variant {i}'}")
     name = st.sidebar.text_input(f"Name for {'Control' if i == 0 else f'Variant {i}'}", value=f"{'Control' if i == 0 else f'V{i}'}", key=f"name_{i}")
-    visitors = st.sidebar.number_input(f"Visitors for {name}", min_value=1, value=1000, key=f"visitors_{i}")
-    conversions = st.sidebar.number_input(f"Conversions for {name}", min_value=0, max_value=visitors, value=100, key=f"conversions_{i}")
+    visitors = st.sidebar.number_input(f"Visitors for {name}", min_value=1, value=1000, step=1, key=f"visitors_{i}")
+    conversions = st.sidebar.number_input(f"Conversions for {name}", min_value=0, max_value=visitors, value=100, step=1, key=f"conversions_{i}")
     variants_data.append({'name': name, 'visitors': visitors, 'conversions': conversions, 'is_control': i == 0})
 
-# Run Test Button
+# Run the Bayesian test
 if st.sidebar.button("Run Test"):
-    # Reset test and add variants
+    # Set priors
+    st.session_state.test.set_conversion_rate_prior(alpha_prior, beta_prior)
+
+    # Reset and configure test
     st.session_state.test.reset()
     for variant in variants_data:
         st.session_state.test.add_variant(
@@ -71,10 +67,11 @@ if st.sidebar.button("Run Test"):
             name=variant['name'],
             control=variant['is_control']
         )
-    
-    # Run Bayesian Test
-    st.session_state.test.run(samples=50_000)
+
+    # Run the Bayesian test
+    st.session_state.test.run(samples=5_000)
     df = st.session_state.test.posterior_samples()
+    df_results = st.session_state.test.summary()
 
     # Function to prepare data for density plots
     def prepare_long_format(df, columns, value_name):
@@ -109,9 +106,16 @@ if st.sidebar.button("Run Test"):
         )
         return chart
 
-    # Plot posterior distributions
+    # Display results
     st.subheader("Posterior Distributions")
-    
     st.altair_chart(plot_density(theta_long, 'Conversion Rate', "Posterior Conversion Rate Distributions"), use_container_width=True)
+    st.write("### Conversion Rate Summary")
+    st.dataframe(df_results[['Variant', 'Conversion Rate Mean', 'Conversion Rate HDI 2.5%', 'Conversion Rate HDI 97.5%']])
+
     st.altair_chart(plot_density(uplift_long, 'Uplift', "Posterior Uplift Distributions"), use_container_width=True)
+    st.write("### Uplift Summary")
+    st.dataframe(df_results[['Variant', 'Conversion Rate Relative Uplift Mean', 'Conversion Rate Relative Uplift HDI 2.5%', 'Conversion Rate Relative Uplift HDI 97.5%']])
+
     st.altair_chart(plot_density(rel_uplift_long, 'Relative Uplift', "Posterior Relative Uplift Distributions"), use_container_width=True)
+    st.write("### Probability of Winning and Expected Loss")
+    st.dataframe(df_results[['Variant', 'Probability of Winning (Conversion Rate)', 'Expected Loss (Conversion Rate)', 'Expected Loss % (Conversion Rate)']])
