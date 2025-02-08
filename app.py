@@ -26,10 +26,27 @@ st.sidebar.subheader("Beta Prior Parameters")
 alpha_prior = st.sidebar.slider("Alpha prior", min_value=1, max_value=50, value=5, step=1)
 beta_prior = st.sidebar.slider("Beta prior", min_value=1, max_value=50, value=5, step=1)
 
-if st.sidebar.button("Select Prior"):
-    st.session_state.prior_plot_ready = True
-    st.sidebar.success("Prior confirmed ✅")
+# if st.sidebar.button("Select Prior"):
+#     st.session_state.prior_plot_ready = True
+#     st.sidebar.success("Prior confirmed ✅")
 
+if st.session_state.prior_plot_ready:
+    x_range = np.linspace(0, 1, 5_000)
+    y = beta.pdf(x_range, alpha_prior, beta_prior)
+    prior_chart = alt.Chart(pd.DataFrame({'x': x_range, 'Density': y})).mark_line().encode(
+        x='x',
+        y='Density'
+    ).properties(
+        title="Beta Prior Distribution",
+        width=400,
+        height=300
+    )
+    #st.sidebar.subheader("Beta Distribution")
+    st.sidebar.altair_chart(prior_chart, use_container_width=True)
+
+
+
+st.write(f"Conversion Rate Prior:  θ ∼ Beta({alpha_prior}, {beta_prior})")
 # Variant inputs
 st.sidebar.subheader("Variants")
 num_variants = st.sidebar.number_input("Number of variants", min_value=1, value=2, step=1)
