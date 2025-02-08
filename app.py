@@ -147,11 +147,11 @@ if st.sidebar.button("Run Test"):
         ).properties(width=350, height=300, title=title)
 
     with row2[0]:  # Bottom Left - Posterior Distributions & Table
-        st.subheader("Posterior Conversion Rate Distributions")
+        st.subheader("Posterior Conversion Rate Distributions", help="Conversion Rate (0-1) simulated outcomes for each variant, derived from the posteriors")
         st.altair_chart(plot_density(theta_long, 'Conversion Rate', "Posterior Conversion Rate Distributions"), use_container_width=True)
         st.dataframe(df_results[['Variant', 'Conversion Rate Mean', 'Conversion Rate HDI 2.5%', 'Conversion Rate HDI 97.5%']])
 
     with row2[1]:  # Bottom Right - Relative Uplift & Table
-        st.subheader("Posterior Relative Uplift Distributions")
+        st.subheader("Posterior Relative Uplift Distributions", help="Simulated outcomes of percentage change in Conversion Rate")
         st.altair_chart(plot_density(rel_uplift_long, 'Relative Uplift', "Posterior Relative Uplift Distributions"), use_container_width=True)
         st.dataframe(df_results[['Variant', 'Relative Uplift Mean', 'Relative Uplift HDI 2.5%', 'Relative Uplift HDI 97.5%']].drop(0))
