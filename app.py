@@ -68,6 +68,12 @@ if st.sidebar.button("Run Test"):
         .astype(float)
     )
 
+    expected_loss['Expected Loss'] = (
+        expected_loss['Expected Loss']
+        .str.rstrip('%')
+        .astype(float)
+    )
+
     # Create consistent color mapping
     color_palette = get_scalable_color_palette(num_variants)
     variant_names = df_results['Variant'].unique()
@@ -79,7 +85,7 @@ if st.sidebar.button("Run Test"):
     row2 = st.columns(2)
 
     with row1[0]:  # Top Left - Probability of Winning
-        st.subheader("Probability of Winning")
+        st.subheader("Probability of Winning", help="The probability of beating the control")
         prob_winning_chart = alt.Chart(prob_winning).mark_bar().encode(
             x=alt.X('Variant:N', title="Variants"),
             y=alt.Y('Probability of Beating Control:Q', title="Probability of Beating Control (%)"),
@@ -88,10 +94,10 @@ if st.sidebar.button("Run Test"):
         st.altair_chart(prob_winning_chart, use_container_width=True)
 
     with row1[1]:  # Top Right - Expected Loss
-        st.subheader("Expected Loss")
+        st.subheader("Expected Loss", help="The absolute decrease in conversion rate, compared to control, if you're wrong about the winner")
         expected_loss_chart = alt.Chart(expected_loss).mark_bar().encode(
             x=alt.X('Variant:N', title="Variants"),
-            y=alt.Y('Expected Loss:Q', title="Expected Loss"),
+            y=alt.Y('Expected Loss:Q', title="Absolute Expected Loss (%)"),
             color=alt.Color('Variant:N', scale=color_scale)
         ).properties(width=300, height=300)
         st.altair_chart(expected_loss_chart, use_container_width=True)
