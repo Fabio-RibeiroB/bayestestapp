@@ -213,11 +213,13 @@ class BayesTest:
         # Columns for expected loss percentages and probabilities of winning
         percent_columns = [
             "Expected Loss %",
-           # "Expected Loss",
+            "Conversion Rate HDI 2.5%",
+            "Conversion Rate Mean",
+            "Conversion Rate HDI 97.5%",
             "Probability of Beating Control",
             "Relative Uplift Mean",
             "Relative Uplift HDI 2.5%",
-            "Rate Relative Uplift HDI 97.5%"
+            "Relative Uplift HDI 97.5%"
         ]
 
         # Multiply by 100 and add '%' sign for both expected loss % and probability of winning
