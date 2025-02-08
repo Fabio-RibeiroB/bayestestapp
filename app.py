@@ -25,7 +25,7 @@ st.sidebar.header("Configuration")
 st.sidebar.subheader("Beta Prior Parameters")
 alpha_prior = st.sidebar.slider("Alpha prior", min_value=1, max_value=50, value=5, step=1)
 beta_prior = st.sidebar.slider("Beta prior", min_value=1, max_value=50, value=5, step=1)
-
+st.session_state.prior_plot_ready = True
 # if st.sidebar.button("Select Prior"):
 #     st.session_state.prior_plot_ready = True
 #     st.sidebar.success("Prior confirmed ✅")
