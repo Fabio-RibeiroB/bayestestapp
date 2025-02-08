@@ -2,17 +2,13 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import numpy as np
+import seaborn as sns
 from scipy.stats import beta
 from bayestest.ab_test import BayesTest
 
 # Function to generate a scalable color palette
 def get_scalable_color_palette(num_variants):
-    if num_variants <= 20:
-        return alt.Scale(scheme='category20')
-    else:
-        import seaborn as sns
-        colors = sns.color_palette("husl", num_variants).as_hex()
-        return alt.Scale(range=colors)
+    return sns.color_palette("husl", num_variants).as_hex()
 
 # App Configuration
 st.set_page_config(page_title="Bayesian A/B Testing Calculator", layout="wide")
@@ -72,9 +68,11 @@ if st.sidebar.button("Run Test"):
         .astype(float)
     )
 
-    all_variants = df_results['Variant'].unique()
-    num_variants = len(all_variants)
-    variant_colors = get_scalable_color_palette(num_variants)
+    # Create consistent color mapping
+    color_palette = get_scalable_color_palette(num_variants)
+    variant_names = df_results['Variant'].unique()
+    variant_color_dict = {variant: color_palette[i] for i, variant in enumerate(variant_names)}
+    color_scale = alt.Scale(domain=list(variant_color_dict.keys()), range=list(variant_color_dict.values()))
 
     # **2x2 Layout**
     row1 = st.columns(2)
@@ -85,7 +83,7 @@ if st.sidebar.button("Run Test"):
         prob_winning_chart = alt.Chart(prob_winning).mark_bar().encode(
             x=alt.X('Variant:N', title="Variants"),
             y=alt.Y('Probability of Beating Control:Q', title="Probability of Beating Control (%)"),
-            color=alt.Color('Variant:N', scale=variant_colors)
+            color=alt.Color('Variant:N', scale=color_scale)
         ).properties(width=300, height=300)
         st.altair_chart(prob_winning_chart, use_container_width=True)
 
@@ -94,7 +92,7 @@ if st.sidebar.button("Run Test"):
         expected_loss_chart = alt.Chart(expected_loss).mark_bar().encode(
             x=alt.X('Variant:N', title="Variants"),
             y=alt.Y('Expected Loss:Q', title="Expected Loss"),
-            color=alt.Color('Variant:N', scale=variant_colors)
+            color=alt.Color('Variant:N', scale=color_scale)
         ).properties(width=300, height=300)
         st.altair_chart(expected_loss_chart, use_container_width=True)
 
@@ -107,12 +105,12 @@ if st.sidebar.button("Run Test"):
     theta_cols = [col for col in df.columns if col.startswith('Conversion Rate') and not col.startswith('Uplift') and not col.startswith('Relative Uplift')]
     rel_uplift_cols = [col for col in df.columns if col.startswith('Relative Uplift')]
 
-
     theta_long = prepare_long_format(df, theta_cols, 'Conversion Rate')
     rel_uplift_long = prepare_long_format(df, rel_uplift_cols, 'Relative Uplift')
+
+    # **Fix Variant Names**
     theta_long['Variant'] = theta_long['Variant'].str.replace(r'^Conversion Rate_', '', regex=True)
     rel_uplift_long['Variant'] = rel_uplift_long['Variant'].str.replace(r'^Relative Uplift_', '', regex=True)
-
 
     def plot_density(data, value_column, title):
         return alt.Chart(data).transform_density(
@@ -122,7 +120,7 @@ if st.sidebar.button("Run Test"):
         ).mark_line().encode(
             x='Value:Q',
             y='Density:Q',
-            color=alt.Color('Variant:N', scale=variant_colors)
+            color=alt.Color('Variant:N', scale=color_scale)
         ).properties(width=350, height=300, title=title)
 
     with row2[0]:  # Bottom Left - Posterior Distributions & Table
