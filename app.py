@@ -110,6 +110,9 @@ if st.sidebar.button("Run Test"):
 
     theta_long = prepare_long_format(df, theta_cols, 'Conversion Rate')
     rel_uplift_long = prepare_long_format(df, rel_uplift_cols, 'Relative Uplift')
+    theta_long['Variant'] = theta_long['Variant'].str.replace(r'^Conversion Rate_', '', regex=True)
+    rel_uplift_long['Variant'] = rel_uplift_long['Variant'].str.replace(r'^Relative Uplift_', '', regex=True)
+
 
     def plot_density(data, value_column, title):
         return alt.Chart(data).transform_density(
