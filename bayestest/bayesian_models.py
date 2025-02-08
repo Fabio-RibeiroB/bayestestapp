@@ -140,4 +140,4 @@ class ConversionRateModel:
         else:
             raise ValueError('Not recognized comparison method')
 
-        return {'theta': self.theta, 'theta_uplift': self.theta_uplift, 'theta_reluplift': self.reluplift}
+        return {'Conversion Rate': self.theta, 'Uplift': self.theta_uplift, 'Relative Uplift': self.reluplift}

@@ -140,39 +140,39 @@ class BayesTest:
             # Initialize row data for each variant
             row_data = {
                 "Variant": variant_name,
-                "Conversion Rate Mean": None,
                 "Conversion Rate HDI 2.5%": None,
+                "Conversion Rate Mean": None,
                 "Conversion Rate HDI 97.5%": None,
-                "Conversion Rate Relative Uplift Mean": None,
-                "Conversion Rate Relative Uplift HDI 2.5%": None,
-                "Conversion Rate Relative Uplift HDI 97.5%": None,
-                "Probability of Winning (Conversion Rate)": None,
-                "Expected Loss (Conversion Rate)": None,
-                "Expected Loss % (Conversion Rate)": None
+                "Relative Uplift HDI 2.5%": None,
+                "Relative Uplift Mean": None,
+                "Relative Uplift HDI 97.5%": None,
+                "Probability of Beating Control": None,
+                "Expected Loss": None,
+                "Expected Loss %": None
             }
 
             # Conversion Rate Metrics (theta)
-            if 'theta' in self.results:
-                variant_samples = self.results['theta'][variant_idx]
+            if 'Conversion Rate' in self.results:
+                variant_samples = self.results['Conversion Rate'][variant_idx]
 
                 # Calculate mean and 95% HDI for conversion rate
                 mean_value = np.mean(variant_samples)
                 hdi_2_5, hdi_97_5 = np.percentile(variant_samples, [2.5, 97.5])
 
                 # Fetch conversion rate uplift
-                if len(self.results['theta_reluplift']) < len(
+                if len(self.results['Relative Uplift']) < len(
                         variant_names):  # i.e. compare_to_control, control has no uplift column
                     idx = variant_idx - 1
                 else:
                     idx = variant_idx
 
-                uplift_samples = self.results['theta_reluplift'][idx] if idx >= 0 else None
+                uplift_samples = self.results['Relative Uplift'][idx] if idx >= 0 else None
                 uplift_mean = np.mean(uplift_samples) if idx >= 0 else None
                 uplift_hdi_2_5, uplift_hdi_97_5 = (
                     np.percentile(uplift_samples, [2.5, 97.5]) if idx >= 0 else (None, None))
 
                 # Get probabilities, expected losses, and expected loss percentages
-                probabilities, expected_losses, expected_losses_pct = analyze_results(self.results, 'theta',
+                probabilities, expected_losses, expected_losses_pct = analyze_results(self.results, 'Conversion Rate',
                                                                                       variant_names, comparison_method)
 
                 # Handle `compare_to_control` comparison method
@@ -192,123 +192,18 @@ class BayesTest:
 
                 # Update row data for conversion rate
                 row_data.update({
-                    "Conversion Rate Mean": mean_value,
                     "Conversion Rate HDI 2.5%": hdi_2_5,
+                    "Conversion Rate Mean": mean_value,
                     "Conversion Rate HDI 97.5%": hdi_97_5,
-                    "Conversion Rate Relative Uplift Mean": uplift_mean,
-                    "Conversion Rate Relative Uplift HDI 2.5%": uplift_hdi_2_5,
-                    "Conversion Rate Relative Uplift HDI 97.5%": uplift_hdi_97_5,
-                    "Probability of Winning (Conversion Rate)": probability_of_winning,
-                    "Expected Loss (Conversion Rate)": expected_loss,
-                    "Expected Loss % (Conversion Rate)": expected_loss_pct
+                    "Relative Uplift HDI 2.5%": uplift_hdi_2_5,
+                    "Relative Uplift Mean": uplift_mean,
+                    "Relative Uplift HDI 97.5%": uplift_hdi_97_5,
+                    "Probability of Beating Control": probability_of_winning,
+                    "Expected Loss": expected_loss,
+                    "Expected Loss %": expected_loss_pct
                 })
 
-            # Conditionally add Revenue per Visitor Metrics with Uplift
-            if 'relative_rpv_uplift' in self.results:  # Ensure the uplift data is available
-                variant_samples = self.results['revenue_per_visitor'][variant_idx]
-
-                # Calculate mean and 95% HDI for revenue per visitor
-                mean_value = np.mean(variant_samples)
-                hdi_2_5, hdi_97_5 = np.percentile(variant_samples, [2.5, 97.5])
-
-                if len(self.results['rpv_uplift']) < len(
-                        variant_names):  # i.e. compare_to_control, control has no uplift column
-                    idx = variant_idx - 1
-                else:
-                    idx = variant_idx
-
-                uplift_samples = self.results['rpv_uplift'][idx] if idx >= 0 else None
-                uplift_mean = np.mean(uplift_samples) if idx >= 0 else None
-                uplift_hdi_2_5, uplift_hdi_97_5 = (
-                    np.percentile(uplift_samples, [2.5, 97.5]) if idx >= 0 else (None, None))
-
-                relative_rpv_uplift_mean = np.mean(self.results['relative_rpv_uplift'][idx]) if idx >= 0 else None
-
-                # Calculate probability of winning and expected loss for revenue per visitor
-                probabilities, expected_losses, expected_losses_pct = analyze_results(self.results,
-                                                                                      'revenue_per_visitor',
-                                                                                      variant_names, comparison_method)
-
-                # Handle `compare_to_control` comparison method
-                if comparison_method == 'compare_to_control':
-                    probability_of_winning_revenue = probabilities.get(f'{variant_name} vs {variant_names[0]}',
-                                                                       'NaN') if variant_idx > 0 else 'NaN'
-                    expected_loss_revenue = expected_losses.get(f'{variant_name} vs {variant_names[0]}',
-                                                                'NaN') if variant_idx > 0 else 'NaN'
-                    expected_loss_pct_revenue = expected_losses_pct.get(f'{variant_name} vs {variant_names[0]}',
-                                                                        'NaN') if variant_idx > 0 else 'NaN'
-
-                # Handle `best_of_rest` comparison method
-                elif comparison_method == 'best_of_rest':
-                    probability_of_winning_revenue = probabilities.get(f'{variant_name} vs Best of Rest', 'NaN')
-                    expected_loss_revenue = expected_losses.get(f'{variant_name} vs Best of Rest', 'NaN')
-                    expected_loss_pct_revenue = expected_losses_pct.get(f'{variant_name} vs Best of Rest', 'NaN')
-
-                # Add revenue data to row
-                row_data.update({
-                    "Revenue per Visitor Mean": mean_value,
-                    "Revenue per Visitor HDI 2.5%": hdi_2_5,
-                    "Revenue per Visitor HDI 97.5%": hdi_97_5,
-                    "Revenue per Visitor Relative Uplift": relative_rpv_uplift_mean,
-                    "Revenue per Visitor Uplift Mean": uplift_mean,
-                    "Revenue per Visitor Uplift HDI 2.5%": uplift_hdi_2_5,
-                    "Revenue per Visitor Uplift HDI 97.5%": uplift_hdi_97_5,
-                    "Probability of Winning (Revenue per Visitor)": probability_of_winning_revenue,
-                    "Expected Loss (Revenue per Visitor)": expected_loss_revenue,
-                    "Expected Loss % (Revenue per Visitor)": expected_loss_pct_revenue
-                })
-
-            # Conditionally add Benefit Metrics (benefit_12_months)
-            if 'benefit_uplift' in self.results:
-                variant_samples = self.results['benefit_12_months'][variant_idx]
-
-                # Calculate mean and 95% HDI for benefit
-                mean_value = np.mean(variant_samples)
-                hdi_2_5, hdi_97_5 = np.percentile(variant_samples, [2.5, 97.5])
-
-                if len(self.results['benefit_uplift']) < len(
-                        variant_names):  # i.e. compare_to_control, control has no uplift column
-                    idx = variant_idx - 1
-                else:
-                    idx = variant_idx
-
-                uplift_samples = self.results['benefit_uplift'][idx] if idx >= 0 else None
-                uplift_mean = np.mean(uplift_samples) if idx >= 0 else None
-                uplift_hdi_2_5, uplift_hdi_97_5 = (
-                    np.percentile(uplift_samples, [2.5, 97.5]) if idx >= 0 else (None, None))
-
-                # Calculate probability of winning and expected loss for benefit
-                probabilities, expected_losses, expected_losses_pct = analyze_results(self.results, 'benefit_12_months',
-                                                                                      variant_names, comparison_method)
-
-                # Handle `compare_to_control` comparison method
-                if comparison_method == 'compare_to_control':
-                    probability_of_winning_benefit = probabilities.get(f'{variant_name} vs {variant_names[0]}',
-                                                                       'NaN') if variant_idx > 0 else 'NaN'
-                    expected_loss_benefit = expected_losses.get(f'{variant_name} vs {variant_names[0]}',
-                                                                'NaN') if variant_idx > 0 else 'NaN'
-                    expected_loss_pct_benefit = expected_losses_pct.get(f'{variant_name} vs {variant_names[0]}',
-                                                                        'NaN') if variant_idx > 0 else 'NaN'
-
-                # Handle `best_of_rest` comparison method
-                elif comparison_method == 'best_of_rest':
-                    probability_of_winning_benefit = probabilities.get(f'{variant_name} vs Best of Rest', 'NaN')
-                    expected_loss_benefit = expected_losses.get(f'{variant_name} vs Best of Rest', 'NaN')
-                    expected_loss_pct_benefit = expected_losses_pct.get(f'{variant_name} vs Best of Rest', 'NaN')
-
-                # Add benefit data to row
-                row_data.update({
-                    "Benefit Mean": mean_value,
-                    "Benefit HDI 2.5%": hdi_2_5,
-                    "Benefit HDI 97.5%": hdi_97_5,
-                    "Benefit Uplift Mean": uplift_mean,
-                    "Benefit Uplift HDI 2.5%": uplift_hdi_2_5,
-                    "Benefit Uplift HDI 97.5%": uplift_hdi_97_5,
-                    "Probability of Winning (Benefit)": probability_of_winning_benefit,
-                    "Expected Loss (Benefit)": expected_loss_benefit,
-                    "Expected Loss % (Benefit)": expected_loss_pct_benefit
-                })
-
+         
             # Append the row to the data list
             data.append(row_data)
 
@@ -317,16 +212,12 @@ class BayesTest:
 
         # Columns for expected loss percentages and probabilities of winning
         percent_columns = [
-            "Expected Loss % (Conversion Rate)",
-            "Expected Loss % (Revenue per Visitor)",
-            "Expected Loss % (Benefit)",
-            "Probability of Winning (Conversion Rate)",
-            "Probability of Winning (Revenue per Visitor)",
-            "Probability of Winning (Benefit)",
-            "Revenue per Visitor Relative Uplift",
-            "Conversion Rate Relative Uplift Mean",
-            "Conversion Rate Relative Uplift HDI 2.5%",
-            "Conversion Rate Relative Uplift HDI 97.5%"
+            "Expected Loss %",
+           # "Expected Loss",
+            "Probability of Beating Control",
+            "Relative Uplift Mean",
+            "Relative Uplift HDI 2.5%",
+            "Rate Relative Uplift HDI 97.5%"
         ]
 
         # Multiply by 100 and add '%' sign for both expected loss % and probability of winning
