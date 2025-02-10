@@ -72,7 +72,7 @@ if st.sidebar.button("Run Test"):
             control=variant['is_control']
         )
 
-    st.session_state.test.run(samples=5000)
+    st.session_state.test.run(samples=150_000)
     df = st.session_state.test.posterior_samples()
     df_results = st.session_state.test.summary()
 
